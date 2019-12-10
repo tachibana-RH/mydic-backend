@@ -1,0 +1,30 @@
+node mysqlmig.js run create_table_users.js up &&
+node mysqlmig.js run create_table_contents.js up &&
+node mysqlmig.js run create_table_basicusers.js up &&
+node mysqlmig.js run create_table_guestusers.js up &&
+node mysqlmig.js run create_table_guestcontents.js up &&
+node mysqlmig.js run add_primary_table_users.js up &&
+node mysqlmig.js run add_primary_table_contents.js up &&
+node mysqlmig.js run add_primary_table_basicusers.js up &&
+node mysqlmig.js run add_primary_table_guestusers.js up &&
+node mysqlmig.js run add_primary_table_guestcontents.js up &&
+node mysqlmig.js run add_increment_table_users.js up &&
+node mysqlmig.js run add_increment_table_contents.js up &&
+node mysqlmig.js run add_increment_table_basicusers.js up &&
+node mysqlmig.js run add_increment_table_guestusers.js up &&
+node mysqlmig.js run add_increment_table_guestcontents.js up
+
+node mysqlmig.js run create_table_users.js down &&
+node mysqlmig.js run create_table_contents.js down &&
+node mysqlmig.js run create_table_guestusers.js down &&
+node mysqlmig.js run create_table_guestcontents.js down
+
+node mysqlmig.js run create_table_users.js down &&
+node mysqlmig.js run create_table_users.js up &&
+node mysqlmig.js run add_primary_table_users.js up &&
+node mysqlmig.js run add_increment_table_users.js up
+
+node mysqlmig.js run create_table_basicusers.js down &&
+node mysqlmig.js run create_table_basicusers.js up &&
+node mysqlmig.js run add_primary_table_basicusers.js up &&
+node mysqlmig.js run add_increment_table_basicusers.js up
