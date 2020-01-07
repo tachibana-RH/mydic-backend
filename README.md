@@ -10,5 +10,6 @@ webサイト保存アプリのサーバーサイドのソースコード
 
 ## 使用技術
 - express
+- sendGridAPI
 - jsonwebtoken
 - mysql
