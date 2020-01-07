@@ -36,10 +36,12 @@ const ALLOWED_METHODS = [
     'GET',
     'POST',
     'PUT',
-    'DELETE'
+    'DELETE',
+    'OPTIONS'
 ];
 const ALLOWED_ORIGINS = [
-    process.env.NODE_CLIENT_ORIGIN
+    process.env.NODE_CLIENT_ORIGIN,
+    'http://localhost:9876'     //KarmaのOrigin
 ];
 app.use((req, res, next) => {
   const origin = req.headers.origin;

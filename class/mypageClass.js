@@ -169,7 +169,7 @@ module.exports = class mypage {
                         if(err){console.log(err);}
                     });
                     return record.destroy().then(result=>{
-                        resolve(result);
+                        resolve(result._previousAttributes);
                     });
                 })
                 .catch(err=>{
@@ -186,7 +186,7 @@ module.exports = class mypage {
                         if(err){console.log(err);}
                     });
                     return record.destroy().then(result=>{
-                        resolve(result);
+                        resolve(result._previousAttributes);
                     });
                 })
                 .catch(err=>{
@@ -196,7 +196,7 @@ module.exports = class mypage {
         });
     }
     /**
-     * コンテンツの削除を行う関数
+     * コンテンツのスクリーンショットを取得する関数
      * @memberOf mypage
      * @name　getShot
      * @return {void} - コンソールで表示

@@ -119,8 +119,7 @@ module.exports = class authrization {
      */
     static IsGuestToken(req, res, next) {
         if(!req.headers.authorization) {
-            res.status(401).json({message:'トークンが作成されていません。'});
-            return;
+            return res.status(401).json({message:'トークンが作成されていません。'});
         }
         const authToken = req.headers.authorization.split(' ')[1];
         jwt.verify(authToken, publickey, { audience: 'Mrs guestuser secret audience' },
@@ -141,13 +140,13 @@ module.exports = class authrization {
      */
     static IsPwToken(req, res, next) {
         if(!req.headers.authorization) {
-            res.status(401).json({message:'トークンが作成されていません。'});
-            return;
+            return res.status(401).json({message:'トークンが作成されていません。'});
         }
         const authToken = req.headers.authorization.split(' ')[1];
-        jwt.verify(authToken, publickey, { audience: 'Mrs guestuser secret audience' },
+        jwt.verify(authToken, publickey, { audience: 'Mrs user secret audience' },
         (err, decoded) => {
             if (err) {
+                console.log(err);
                 res.status(401).json({message:'パスワードの登録期限が過ぎています。'});
             } else {
                 req.jwtPayLoad = decoded;
@@ -162,6 +161,9 @@ module.exports = class authrization {
      * router.get('/example', IsAuthorizationToken, (req, res) => {res.json({message: 'OK'})});
      */
     static IsAuthorizationToken(req, res, next) {
+        if(!req.headers.authorization) {
+            return res.status(401).json({message:'トークンが作成されていません。'});
+        }
         const authToken = req.headers.authorization.split(' ')[1];
         jwt.verify(authToken, publickey, { audience: 'Mrs user secret audience' },
         (err, decoded) => {

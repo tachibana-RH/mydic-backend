@@ -12,60 +12,64 @@ const mysqlModules = require('../mysqlmodules/models');
 const authorizationClass = require('../class/authrizationClass');
 const authorizationService = new authorizationClass();
 
-const nodemailer = require('nodemailer');
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: true,
-    auth: {
-      user: process.env.SENDER_EMAIL_ADDRESS,
-      pass: process.env.SENDER_EMAIL_PASSWORD
-    }
-});
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+// const nodemailer = require('nodemailer');
+// const transporter = nodemailer.createTransport({
+//     host: process.env.SMTP_HOST,
+//     port: process.env.SMTP_PORT,
+//     secure: true,
+//     auth: {
+//       user: process.env.SENDER_EMAIL_ADDRESS,
+//       pass: process.env.SENDER_EMAIL_PASSWORD
+//     }
+// });
 
 /**
  * 新規登録者のメールアドレスにトークン付きのURLを送信するルーター
  */
 router.post('/signup', (req,res)=>{
-    mysqlModules.Users.query({where: {email: req.body.email}}).fetch()
+    mysqlModules.BasicUsers.query({where: {email: req.body.email}}).fetch()
     .then(()=>{
         res.status(400).json({message:'既に登録されているメールアドレスです。'});
     })
     .catch(()=>{
         /* 登録されていないメールアドレスだった場合DBへ登録し、
          * トークンの作成とそのトークンを含めたURLをメールで送信する*/
-        new mysqlModules.Users({
+        new mysqlModules.BasicUsers({
             name: req.body.name,
-            email: req.body.email,
-            usertype: 'general'
+            email: req.body.email
         })
         .save()
         .then((result) => {
             const token = authorizationService.generateToken(result.attributes.name, result.attributes.id);
-            const mailOptions = {
+            const msg = {
                 from: process.env.SENDER_EMAIL_ADDRESS,
                 to: req.body.email,
                 subject: 'ユーザー登録に関してのご連絡【mydic運営】',
                 html: `<br>
                 ご登録ありがとうございます。<br>
                 下記のURLからパスワードの設定をよろしくお願いいたします。<br>
-                ※安全性の問題から登録期限は受信から2時間以内とさせていただいております。<br>
-                ${process.env.NODE_CLIENT_ORIGIN}/psregistration/${token}`
+                ※安全性の問題から登録期限は受信から2時間以内とさせていただいております。<br><br>
+                ■パスワード登録ページへのURL<br>
+                ${process.env.NODE_CLIENT_ORIGIN}/#/pspage/${token}`
             };
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    mysqlModules.Users.query({where: {email: req.body.email}}).fetch()
+            sgMail.send(msg,false,(err,result)=>{
+                if (err) {
+                    mysqlModules.BasicUsers.query({where: {email: req.body.email}}).fetch()
                     .then((result)=>{
                         result.destroy();
-                        res.status(400).json({message:'メールを送信できませんでした。<br>お手数ですが再度のご登録をよろしくお願いします。'});
+                        res.status(400).json({message:'メールを送信できませんでした。お手数ですが再度のご登録をよろしくお願いします。'});
                     });
                 } else {
-                    res.status(200).json({message: 'ご登録いただいたアドレスへ<br>メールを送信しました。'});
+                    res.status(200).json({message: 'ご登録いただいたアドレスへメールを送信しました。'});
                 }
             });
         })
         .catch(err=>{
-            res.status(400).json({message: err});
+            res.status(400).json({message: 'メールを送信できませんでした。お手数ですが再度のご登録をよろしくお願いします。'});
+            console.log(err);
         });
     });
 });
@@ -88,7 +92,7 @@ router.post('/pwregist', authorizationClass.IsPwToken, (req, res)=>{
         })
         .catch(err=>{
             console.log(err);
-            res.status(400).json({message: err});
+            res.status(400).json({message: 'パスワードの登録に失敗しました。'});
         });
     });
 });
@@ -104,8 +108,10 @@ router.post('/basic', authorizationClass.IsGuestToken, (req, res)=>{
         bcrypt.compare(req.body.password, result.attributes.password, (err, chkresult)=>{
             if (chkresult) {
                 /* トークンを生成してクライアントへ返す */
-                const token = authorizationService.generateToken(result.attributes.name, result.attributes.email);
-                res.status(200).json({token: token});
+                authorizationService.propSet = {userInfo: {emails: [{value: result.attributes.email}], displayName: result.attributes.name}};
+                authorizationService.generateUserInfo().then(token => {
+                    res.status(200).json({token: token});
+                });
             } else {
                 res.status(401).json({message: 'パスワードに誤りがあります。'});
             }
@@ -158,7 +164,6 @@ router.get('/google/callback',
             res.redirect(`${process.env.NODE_CLIENT_ORIGIN}/#/mypage/${token}`);
         })
         .catch(err=>{
-            console.log(err);
             res.status(400).json({message: err});
         });
     }
@@ -205,7 +210,6 @@ router.get('/github/callback',
             res.redirect(`${process.env.NODE_CLIENT_ORIGIN}/#/mypage/${token}`);
         })
         .catch(err=>{
-            console.log(err);
             res.status(400).json({message: err});
         });
     }
@@ -227,6 +231,25 @@ router.post('/guestlogin', (req, res) => {
     })
     .catch(err=>{
         res.status(400).json({message: err});
+    });
+});
+
+/**
+ * お問い合わせ処理のルーター
+ */
+router.post('/contact', (req, res) => {
+    const msg = {
+        from: req.body.email,
+        to: process.env.SENDER_EMAIL_ADDRESS,
+        subject: req.body.subject,
+        text: req.body.text
+    };
+    sgMail.send(msg,false,(err,result)=>{
+        if (err) {
+            res.status(400).json({message: 'お問い合わせを送信できませんでした。'});
+        } else {
+            res.status(200).json({message: 'お問い合わせありがとうございます。'});
+        }
     });
 });
 
